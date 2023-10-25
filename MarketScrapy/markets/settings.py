@@ -6,7 +6,7 @@
 #     https://docs.scrapy.org/en/latest/topics/settings.html
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-
+import os  
 BOT_NAME = 'markets'
 
 SPIDER_MODULES = ['markets.spiders']
@@ -92,6 +92,5 @@ ITEM_PIPELINES = {
 # config Market constants
 MARKET_WATCHLIST = ['8070','7057','7053']
 
-
-TABLE_NAME = "predictit"
-DATABASE_NAME = "prediction_markets"
+TABLE_NAME = os.environ['TableName']
+DATABASE_NAME =  os.environ['DbName']

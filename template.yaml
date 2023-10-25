@@ -1,0 +1,93 @@
+
+
+
+
+
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: scrapy lambda deployment
+
+Parameters:
+  TimestreamDatabaseName:
+    Type: String
+    Default: prediction_markets_temp
+    Description: "prediction markets timestream database"
+  TimestreamTableName:
+    Type: String
+    Default: predictittemp
+    Description: "predictit Timstream table name."
+  TimestreamCompositePartitionKey:
+    Type: String
+    Default: Contract_ID
+    Description: "The Timstream CompositePartitionKey name."
+    
+Resources:
+  piscrapytemp:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: MarketScrapy/
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      Timeout: 180
+      Environment:
+        Variables:
+          DbName: !Ref TimestreamDatabaseName
+          TableName: !Ref TimestreamTableName
+      Layers:
+        - !Ref scrapylayertemp
+      Policies:
+        - AmazonTimestreamFullAccess
+    Events:
+      PredictitTriggertemp:
+        Type: AWS::Events::Rule
+        Properties:
+          EventPattern:
+            source:
+              - "aws.events"
+
+  PredictitTriggertemp:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "scrape every 2 minutes"
+      ScheduleExpression: "rate(2 minutes)"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn: !GetAtt piscrapytemp.Arn
+          Id: "piscrapytemp"
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref "piscrapytemp"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::GetAtt:
+          - "PredictitTriggertemp"
+          - "Arn"
+  scrapylayertemp:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: scrapy_layer
+      CompatibleRuntimes:
+        - python3.11
+    Metadata:
+      BuildMethod: makefile
+  TimestreamDatabase:
+    Type: AWS::Timestream::Database
+    Properties:
+      DatabaseName: !Ref TimestreamDatabaseName
+  TimestreamTable:
+    Type: AWS::Timestream::Table
+    Properties:
+      DatabaseName: !Ref TimestreamDatabase
+      TableName: !Ref TimestreamTableName
+      RetentionProperties:
+        MagneticStoreRetentionPeriodInDays: 3652
+        MemoryStoreRetentionPeriodInHours: 12
+      Schema: #This is optional, not required for the scheduled query example
+        CompositePartitionKey:
+          - EnforcementInRecord: "REQUIRED"
+            Name: !Ref TimestreamCompositePartitionKey
+            Type: "DIMENSION"
+
