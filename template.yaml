@@ -1,28 +1,23 @@
-
-
-
-
-
-AWSTemplateFormatVersion: "2010-09-09"
+AWSlateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: scrapy lambda deployment
 
 Parameters:
   TimestreamDatabaseName:
     Type: String
-    Default: prediction_markets_temp
+    Default: prediction_markets_
     Description: "prediction markets timestream database"
   TimestreamTableName:
     Type: String
-    Default: predictittemp
+    Default: predictit
     Description: "predictit Timstream table name."
   TimestreamCompositePartitionKey:
     Type: String
     Default: Contract_ID
     Description: "The Timstream CompositePartitionKey name."
-    
+
 Resources:
-  piscrapytemp:
+  piscrapy:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: MarketScrapy/
@@ -34,18 +29,18 @@ Resources:
           DbName: !Ref TimestreamDatabaseName
           TableName: !Ref TimestreamTableName
       Layers:
-        - !Ref scrapylayertemp
+        - !Ref scrapylayer
       Policies:
         - AmazonTimestreamFullAccess
     Events:
-      PredictitTriggertemp:
+      PredictitTrigger:
         Type: AWS::Events::Rule
         Properties:
           EventPattern:
             source:
               - "aws.events"
 
-  PredictitTriggertemp:
+  PredictitTrigger:
     Type: AWS::Events::Rule
     Properties:
       Description: "scrape every 2 minutes"
@@ -53,19 +48,19 @@ Resources:
       State: "ENABLED"
       Targets:
         -
-          Arn: !GetAtt piscrapytemp.Arn
-          Id: "piscrapytemp"
+          Arn: !GetAtt piscrapy.Arn
+          Id: "piscrapy"
   PermissionForEventsToInvokeLambda:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref "piscrapytemp"
+      FunctionName: !Ref "piscrapy"
       Action: "lambda:InvokeFunction"
       Principal: "events.amazonaws.com"
       SourceArn:
         Fn::GetAtt:
-          - "PredictitTriggertemp"
+          - "PredictitTrigger"
           - "Arn"
-  scrapylayertemp:
+  scrapylayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       ContentUri: scrapy_layer
